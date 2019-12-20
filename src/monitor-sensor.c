@@ -11,7 +11,7 @@
 
 static GMainLoop *loop;
 static guint watch_id;
-static GDBusProxy *iio_proxy, *iio_proxy_compass;
+static GDBusProxy *iio_proxy, *iio_proxy_compass, *iio_proxy_proximity;
 
 static void
 properties_changed (GDBusProxy *proxy,
@@ -67,6 +67,19 @@ properties_changed (GDBusProxy *proxy,
 		g_print ("    Compass heading changed: %lf\n", g_variant_get_double (v));
 		g_variant_unref (v);
 	}
+	if (g_variant_dict_contains (&dict, "HasProximity")) {
+		v = g_dbus_proxy_get_cached_property (iio_proxy_proximity, "HasProximity");
+		if (g_variant_get_boolean (v))
+			g_print ("+++ Proximity sensor appeared\n");
+		else
+			g_print ("--- Proximity sensor disappeared\n");
+		g_variant_unref (v);
+	}
+	if (g_variant_dict_contains (&dict, "ProximityProximity")) {
+		v = g_dbus_proxy_get_cached_property (iio_proxy_proximity, "ProximityProximity");
+		g_print ("    Proximity value changed: %d\n", g_variant_get_int32 (v));
+		g_variant_unref (v);
+	}
 
 	g_variant_dict_clear (&dict);
 }
@@ -103,24 +116,41 @@ print_initial_values (void)
 	}
 	g_variant_unref (v);
 
-	if (!iio_proxy_compass)
-		return;
-
-	v = g_dbus_proxy_get_cached_property (iio_proxy_compass, "HasCompass");
-	if (g_variant_get_boolean (v)) {
-		g_variant_unref (v);
-		v = g_dbus_proxy_get_cached_property (iio_proxy, "CompassHeading");
-		if (v) {
-			g_print ("=== Has compass (heading: %lf)\n",
-				 g_variant_get_double (v));
+	if (iio_proxy_compass) {
+		v = g_dbus_proxy_get_cached_property (iio_proxy_compass, "HasCompass");
+		if (g_variant_get_boolean (v)) {
 			g_variant_unref (v);
+			v = g_dbus_proxy_get_cached_property (iio_proxy, "CompassHeading");
+			if (v) {
+				g_print ("=== Has compass (heading: %lf)\n",
+					 g_variant_get_double (v));
+				g_variant_unref (v);
+			} else {
+				g_print ("=== Has compass (heading: unset)\n");
+			}
 		} else {
-			g_print ("=== Has compass (heading: unset)\n");
+			g_print ("=== No compass\n");
 		}
-	} else {
-		g_print ("=== No compass\n");
+		g_clear_pointer (&v, g_variant_unref);
 	}
-	g_clear_pointer (&v, g_variant_unref);
+
+	if (iio_proxy_proximity) {
+		v = g_dbus_proxy_get_cached_property (iio_proxy_proximity, "HasProximity");
+		if (g_variant_get_boolean (v)) {
+			g_variant_unref (v);
+			v = g_dbus_proxy_get_cached_property (iio_proxy, "ProximityProximity");
+			if (v) {
+				g_print ("=== Has proximity sensor (value: %d)\n",
+					 g_variant_get_int32 (v));
+				g_variant_unref (v);
+			} else {
+				g_print ("=== Has proximity sensor (value: unset)\n");
+			}
+		} else {
+			g_print ("=== No proximity sensor\n");
+		}
+		g_clear_pointer (&v, g_variant_unref);
+	}
 }
 
 static void
@@ -157,6 +187,18 @@ appeared_cb (GDBusConnection *connection,
 		g_signal_connect (G_OBJECT (iio_proxy_compass), "g-properties-changed",
 				  G_CALLBACK (properties_changed), NULL);
 	}
+
+	iio_proxy_proximity = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+							     G_DBUS_PROXY_FLAGS_NONE,
+							     NULL,
+							     "net.hadess.SensorProxy",
+							     "/net/hadess/SensorProxy/Proximity",
+							     "net.hadess.SensorProxy.Proximity",
+							     NULL, NULL);
+
+	g_signal_connect (G_OBJECT (iio_proxy_proximity), "g-properties-changed",
+			  G_CALLBACK (properties_changed), NULL);
+
 
 	/* Accelerometer */
 	ret = g_dbus_proxy_call_sync (iio_proxy,
@@ -205,6 +247,21 @@ appeared_cb (GDBusConnection *connection,
 		g_clear_pointer (&ret, g_variant_unref);
 	}
 
+	/* Proximity sensor */
+	ret = g_dbus_proxy_call_sync (iio_proxy_proximity,
+				      "ClaimProximity",
+				      NULL,
+				      G_DBUS_CALL_FLAGS_NONE,
+				      -1,
+				      NULL, &error);
+	if (!ret) {
+		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+			g_warning ("Failed to claim proximity sensor: %s", error->message);
+		g_main_loop_quit (loop);
+		return;
+	}
+	g_clear_pointer (&ret, g_variant_unref);
+
 	print_initial_values ();
 }
 
@@ -213,9 +270,10 @@ vanished_cb (GDBusConnection *connection,
 	     const gchar *name,
 	     gpointer user_data)
 {
-	if (iio_proxy || iio_proxy_compass) {
+	if (iio_proxy || iio_proxy_compass || iio_proxy_proximity) {
 		g_clear_object (&iio_proxy);
 		g_clear_object (&iio_proxy_compass);
+		g_clear_object (&iio_proxy_proximity);
 		g_print ("--- iio-sensor-proxy vanished, waiting for it to appear\n");
 	}
 }
