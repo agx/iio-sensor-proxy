@@ -55,6 +55,8 @@ E: USEC_INITIALIZED=7750292
 You can now check whether a sensor is detected by running:
 ```
 gdbus introspect --system --dest net.hadess.SensorProxy --object-path /net/hadess/SensorProxy
+gdbus introspect --system --dest net.hadess.SensorProxy --object-path /net/hadess/SensorProxy/Compass
+gdbus introspect --system --dest net.hadess.SensorProxy --object-path /net/hadess/SensorProxy/Proximity
 ```
 
 After that, use `monitor-sensor` to see changes in the ambient light sensor
