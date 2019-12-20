@@ -24,6 +24,10 @@
     <allow send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Introspectable"/>
     <allow send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Properties"/>
     <allow send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Peer"/>
+    <allow send_destination="net.hadess.SensorProxy" send_interface="net.hadess.SensorProxy.Proximity" send_path="/net/hadess/SensorProxy/Proximity"/>
+    <allow send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Introspectable" send_path="/net/hadess/SensorProxy/Proximity"/>
+    <allow send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Properties" send_path="/net/hadess/SensorProxy/Proximity"/>
+    <allow send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Peer" send_path="/net/hadess/SensorProxy/Proximity"/>
     <deny send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Introspectable" send_path="/net/hadess/SensorProxy/Compass"/>
     <deny send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Properties" send_path="/net/hadess/SensorProxy/Compass"/>
     <deny send_destination="net.hadess.SensorProxy" send_interface="org.freedesktop.DBus.Peer" send_path="/net/hadess/SensorProxy/Compass"/>
