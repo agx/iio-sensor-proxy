@@ -168,7 +168,7 @@ iioutils_get_param_float (float      *output,
 
 	sysfsfp = fopen (filename, "r");
 	if (sysfsfp) {
-		fscanf (sysfsfp, "%f", output);
+		(void) !fscanf (sysfsfp, "%f", output);
 		fclose (sysfsfp);
 		g_free (filename);
 		return 0;
@@ -260,7 +260,7 @@ build_channel_array (const char        *device_dir,
 				g_free (filename);
 				continue;
 			}
-			fscanf (sysfsfp, "%d", &ret);
+			(void) !fscanf (sysfsfp, "%d", &ret);
 			fclose (sysfsfp);
 			if (!ret) {
 				g_debug ("Could not read from scan_elements file '%s'", filename);
@@ -288,7 +288,7 @@ build_channel_array (const char        *device_dir,
 				ret = -errno;
 				goto error;
 			}
-			fscanf (sysfsfp, "%u", &current->index);
+			(void) !fscanf (sysfsfp, "%u", &current->index);
 			fclose (sysfsfp);
 			g_free (filename);
 
@@ -383,7 +383,7 @@ _write_sysfs_int (const char *filename,
 			ret = -errno;
 			goto error_free;
 		}
-		fscanf(sysfsfp, "%d", &test);
+		(void) !fscanf(sysfsfp, "%d", &test);
 		if (test != val) {
 			g_warning ("Possible failure in int write %d to %s",
 				   val, temp);
@@ -431,7 +431,7 @@ _write_sysfs_string (const char *filename,
 		ret = -errno;
 		goto error_free;
 	}
-	fscanf(sysfsfp, "%s", temp);
+	(void) !fscanf(sysfsfp, "%s", temp);
 	if (strcmp(temp, val) != 0) {
 		g_warning ("Possible failure in string write of %s Should be %s written to %s\\%s\n",
 			   temp, val, basedir, filename);
