@@ -25,6 +25,7 @@ typedef struct DrvData {
 	GUdevDevice        *dev;
 	const char         *name;
 	gint                near_level;
+	gint                last_level;
 } DrvData;
 
 static DrvData *drv_data = NULL;
@@ -54,11 +55,15 @@ poll_proximity (gpointer user_data)
 	DrvData *data = user_data;
 	ProximityReadings readings;
 	gint prox;
+	gdouble near_level = data->near_level;
 
 	/* g_udev_device_get_sysfs_attr_as_int does not update when there's no event */
 	prox = sysfs_get_int (data->dev, "in_proximity_raw");
-	readings.near = (prox > data->near_level) ? TRUE : FALSE;
-	g_debug ("Proximity read from IIO on '%s': %d, near: %d", data->name, prox, readings.near);
+	/* Use a margin so we don't trigger too often */
+	near_level *=  (data->last_level > near_level) ? 0.9 : 1.1;
+	readings.near = (prox > near_level) ? TRUE : FALSE;
+	g_debug ("Proximity read from IIO on '%s': %d/%f, near: %d", data->name, prox, near_level, readings.near);
+	data->last_level = prox;
 
 	drv_data->callback_func (&iio_poll_proximity, (gpointer) &readings, drv_data->user_data);
 
