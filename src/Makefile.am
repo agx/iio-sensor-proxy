@@ -15,6 +15,7 @@ iio_sensor_proxy_SOURCES =			\
 	drivers.h				\
 	orientation.c				\
 	orientation.h				\
+	drv-common.c				\
 	drv-iio-buffer-accel.c			\
 	drv-iio-poll-accel.c			\
 	drv-iio-poll-proximity.c		\
